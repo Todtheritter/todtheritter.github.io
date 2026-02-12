@@ -100,6 +100,44 @@
         onEachFeature: onEachFeature
       }).addTo(map);
 
+// Add legend
+const legend = L.control({ position: "bottomright" });
+
+legend.onAdd = function () {
+  const div = L.DomUtil.create("div", "info legend");
+
+  div.innerHTML = `
+    <div style="
+      background: white;
+      padding: 10px;
+      font-size: 13px;
+      line-height: 1.4;
+      box-shadow: 0 0 6px rgba(0,0,0,0.3);
+      border-radius: 6px;
+      max-width: 260px;
+    ">
+      <div style="display:flex; align-items:center; margin-bottom:6px;">
+        <span style="
+          display:inline-block;
+          width:18px;
+          height:18px;
+          background:#2ca25f;
+          opacity:0.5;
+          margin-right:8px;
+        "></span>
+        Voted YES
+      </div>
+      <div style="font-size:12px;">
+        Bill removed the 2030 carbon reduction target and changed regulatory rules on cost recovery (including construction and fuel costs), expanding Duke Energy’s ability to include certain costs in rates. Passed over the governor’s veto.
+      </div>
+    </div>
+  `;
+
+  return div;
+};
+
+legend.addTo(map);
+ 
     })
     .catch(error => {
       console.error("Error loading map data:", error);
@@ -108,6 +146,7 @@
   </script>
 </body>
 </html>
+
 
 
 
