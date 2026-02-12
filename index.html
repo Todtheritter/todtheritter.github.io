@@ -43,14 +43,26 @@
       .then(response => response.json())
       .then(data => {
 
-        function style(feature) {
-          return {
-            color: "#000",
-            weight: 1,
-            fillColor: "#2c7fb8",
-            fillOpacity: 0.5
-          };
-        }
+function style(feature) {
+  const district = feature.properties.DISTRICT;
+  const vote = voteResults[district];
+
+  let fillColor = "transparent";
+  let fillOpacity = 0;
+
+  if (vote === "yes") {
+    fillColor = "#2ca25f";   // green
+    fillOpacity = 0.5;       // 50% opacity
+  }
+
+  return {
+    color: "#444",      // subtle border
+    weight: 1,
+    fillColor: fillColor,
+    fillOpacity: fillOpacity
+  };
+}
+
 
         function highlightFeature(e) {
           const layer = e.target;
@@ -83,3 +95,4 @@
   </script>
 </body>
 </html>
+
