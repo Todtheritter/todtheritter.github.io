@@ -38,61 +38,72 @@
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Load GeoJSON
-    fetch('nc-house.geojson')   // <-- Make sure filename matches exactly
-      .then(response => response.json())
-      .then(data => {
+// Load GeoJSON + vote data together
+Promise.all([
+  fetch('nc-house.geojson').then(r => r.json()),
+  fetch('nc-house-reps-voteResultsfull.json').then(r => r.json())
+]).then(([districtGeo, voteResults]) => {
 
-function style(feature) {
-  const district = feature.properties.DISTRICT;
-  const vote = voteResults[district];
+  function style(feature) {
+    const district = feature.properties.DISTRICT;
+    const info = voteResults[district];
 
-  let fillColor = "transparent";
-  let fillOpacity = 0;
+    let fillColor = "transparent";
+    let fillOpacity = 0;
 
-  if (vote === "yes") {
-    fillColor = "#2ca25f";   // green
-    fillOpacity = 0.5;       // 50% opacity
+    if (info && info.vote === "yes") {
+      fillColor = "#2ca25f";
+      fillOpacity = 0.5;
+    }
+
+    return {
+      color: "#444",
+      weight: 1,
+      fillColor: fillColor,
+      fillOpacity: fillOpacity
+    };
   }
 
-  return {
-    color: "#444",      // subtle border
-    weight: 1,
-    fillColor: fillColor,
-    fillOpacity: fillOpacity
-  };
-}
+  function highlightFeature(e) {
+    e.target.setStyle({
+      weight: 2,
+      color: "#000"
+    });
+  }
 
+  function resetHighlight(e) {
+    geojson.resetStyle(e.target);
+  }
 
-        function highlightFeature(e) {
-          const layer = e.target;
-          layer.setStyle({
-            fillColor: "#ff7800",
-            fillOpacity: 0.8
-          });
-        }
+  function onEachFeature(feature, layer) {
+    const district = feature.properties.DISTRICT;
+    const info = voteResults[district];
 
-        function resetHighlight(e) {
-          geojson.resetStyle(e.target);
-        }
+    layer.on({
+      mouseover: highlightFeature,
+      mouseout: resetHighlight
+    });
 
-        function onEachFeature(feature, layer) {
-          layer.on({
-            mouseover: highlightFeature,
-            mouseout: resetHighlight,
-            click: function () {
-              alert("District clicked");
-            }
-          });
-        }
+    if (info) {
+      layer.bindPopup(`
+        <strong>District ${district}</strong><br>
+        Representative: ${info.rep}<br>
+        Party: ${info.party}<br>
+        Tenure: ${info.tenure}<br>
+        Vote: ${info.vote || "No data"}
+      `);
+    }
+  }
 
-        const geojson = L.geoJSON(data, {
-          style: style,
-          onEachFeature: onEachFeature
-        }).addTo(map);
+  const geojson = L.geoJSON(districtGeo, {
+    style: style,
+    onEachFeature: onEachFeature
+  }).addTo(map);
 
-      });
+});
+);
   </script>
 </body>
 </html>
+
 
