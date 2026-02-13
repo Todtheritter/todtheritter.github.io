@@ -5,30 +5,60 @@
   <title>North Carolina Legislative Votes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-  <!-- Turf -->
   <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 
   <style>
     body { margin: 0; font-family: Arial, sans-serif; }
     #map { height: 100vh; width: 100%; }
+
+    #searchBox {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.25);
+      display: flex;
+      gap: 6px;
+    }
+
+    #searchBox input {
+      width: 260px;
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    #searchBox button {
+      padding: 6px 10px;
+      cursor: pointer;
+      border: none;
+      background: #2c7fb8;
+      color: white;
+      border-radius: 4px;
+    }
   </style>
 </head>
 
 <body>
 
+<div id="searchBox">
+  <input type="text" id="addressInput" placeholder="Enter address in North Carolina..." />
+  <button onclick="searchAddress()">Search</button>
+</div>
+
 <div id="map"></div>
 
-<!-- Leaflet JS MUST come before your script -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<!-- Your map script -->
 <script>
+
 const map = L.map('map', {
   center: [35.5, -79],
   zoom: 7,
@@ -47,14 +77,15 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 Promise.all([
   fetch('nc-house.geojson').then(r => r.json()),
   fetch('nc-house-reps-voteResultsfull.json').then(r => r.json()),
-  fetch('nc-senate.json.json').then(r => r.json()),
+  fetch('nc-senate-boundary.json').then(r => r.json()),
   fetch('nc-senate-reps-voteResultsfull.json').then(r => r.json())
 ]).then(([houseGeo, houseVotes, senateGeo, senateVotes]) => {
 
   let activeLayer;
-  let activeVoteData;
 
   function createLayer(geoData, voteData) {
+
+    let layerGroup;
 
     function style(feature) {
       const district = feature.properties.DISTRICT;
@@ -108,7 +139,7 @@ Promise.all([
       }
     }
 
-    const layerGroup = L.geoJSON(geoData, {
+    layerGroup = L.geoJSON(geoData, {
       style: style,
       onEachFeature: onEachFeature
     });
@@ -119,12 +150,9 @@ Promise.all([
   const houseLayer = createLayer(houseGeo, houseVotes);
   const senateLayer = createLayer(senateGeo, senateVotes);
 
-  // Start with House
   houseLayer.addTo(map);
   activeLayer = houseLayer;
-  activeVoteData = houseVotes;
 
-  // Toggle control
   const toggleControl = L.control({ position: "topright" });
 
   toggleControl.onAdd = function () {
@@ -147,19 +175,10 @@ Promise.all([
 
   window.switchLayer = function(type) {
     map.removeLayer(activeLayer);
-
-    if (type === "house") {
-      activeLayer = houseLayer;
-      activeVoteData = houseVotes;
-    } else {
-      activeLayer = senateLayer;
-      activeVoteData = senateVotes;
-    }
-
+    activeLayer = (type === "house") ? houseLayer : senateLayer;
     activeLayer.addTo(map);
   };
 
-  // Address Search (works with active layer)
   window.searchAddress = async function () {
     const address = document.getElementById("addressInput").value;
     if (!address) return;
@@ -201,7 +220,6 @@ Promise.all([
     }
   };
 
-  // Legend (static text – can be upgraded to dynamic if desired)
   const legend = L.control({ position: "bottomright" });
 
   legend.onAdd = function () {
@@ -246,10 +264,6 @@ Promise.all([
 
 </body>
 </html>
-
-
-
-
 
 
 
