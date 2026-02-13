@@ -81,70 +81,66 @@ Promise.all([
   fetch('nc-senate-reps-voteResultsfull.json').then(r => r.json())
 ]).then(([houseGeo, houseVotes, senateGeo, senateVotes]) => {
 
+  let colorMode = "vote";
   let activeLayer;
 
   function createLayer(geoData, voteData) {
-
-    let layerGroup;
 
     function style(feature) {
       const district = feature.properties.DISTRICT;
       const info = voteData[district];
 
-      if (info && info.vote === "Yes") {
-        return {
-          color: "#444",
-          weight: 1,
-          fillColor: "#f1c40f",
-          fillOpacity: 0.5
-        };
+      if (!info) {
+        return { color:"#444", weight:1, fillOpacity:0 };
+      }
+
+      let fillColor = "#999";
+
+      if (colorMode === "vote") {
+        if (info.vote === "Yes") fillColor = "#f1c40f";
+        else if (info.vote === "No") fillColor = "#8e44ad";
+        else fillColor = "#999999";
+      }
+
+      if (colorMode === "party") {
+        if (info.vote === "Yes" && info.party === "Republican")
+          fillColor = "#c0392b";
+        else if (info.vote === "Yes" && info.party === "Democrat")
+          fillColor = "#2980b9";
+        else if (info.vote === "No")
+          fillColor = "#8e44ad";
+        else
+          fillColor = "#999999";
       }
 
       return {
         color: "#444",
         weight: 1,
-        fillColor: "transparent",
-        fillOpacity: 0
+        fillColor: fillColor,
+        fillOpacity: 0.5
       };
     }
 
-    function highlightFeature(e) {
-      e.target.setStyle({
-        weight: 2,
-        color: "#000"
-      });
-    }
-
-    function resetHighlight(e) {
-      layerGroup.resetStyle(e.target);
-    }
-
-    function onEachFeature(feature, layer) {
-      const district = feature.properties.DISTRICT;
-      const info = voteData[district];
-
-      layer.on({
-        mouseover: highlightFeature,
-        mouseout: resetHighlight
-      });
-
-      if (info) {
-        layer.bindPopup(`
-          <strong>District ${district}</strong><br>
-          Representative: ${info.rep}<br>
-          Party: ${info.party}<br>
-          Tenure: ${info.tenure}<br>
-          Vote: ${info.vote || "No data"}
-        `);
-      }
-    }
-
-    layerGroup = L.geoJSON(geoData, {
+    const layer = L.geoJSON(geoData, {
       style: style,
-      onEachFeature: onEachFeature
+      onEachFeature: function(feature, layer) {
+        const district = feature.properties.DISTRICT;
+        const info = voteData[district];
+
+        if (info) {
+          layer.bindPopup(`
+            <strong>District ${district}</strong><br>
+            Representative: ${info.rep}<br>
+            Party: ${info.party}<br>
+            Tenure: ${info.tenure}<br>
+            Vote: ${info.vote || "No data"}
+          `);
+        }
+      }
     });
 
-    return layerGroup;
+    layer._styleFunction = style;
+    return layer;
   }
 
   const houseLayer = createLayer(houseGeo, houseVotes);
@@ -153,117 +149,107 @@ Promise.all([
   houseLayer.addTo(map);
   activeLayer = houseLayer;
 
-  const toggleControl = L.control({ position: "topright" });
-
-  toggleControl.onAdd = function () {
+  // House/Senate Toggle
+  const chamberControl = L.control({ position: "topright" });
+  chamberControl.onAdd = function () {
     const div = L.DomUtil.create("div");
-    div.innerHTML = `
-      <div style="
-        background:white;
-        padding:8px;
-        box-shadow:0 0 6px rgba(0,0,0,0.3);
-        border-radius:6px;
-      ">
-        <button onclick="switchLayer('house')" style="margin-right:4px;">House</button>
-        <button onclick="switchLayer('senate')">Senate</button>
-      </div>
-    `;
+    div.style.background = "white";
+    div.style.padding = "8px";
+    div.style.boxShadow = "0 0 6px rgba(0,0,0,0.3)";
+    div.style.borderRadius = "6px";
+
+    const houseBtn = L.DomUtil.create("button", "", div);
+    houseBtn.innerHTML = "House";
+    houseBtn.style.marginRight = "4px";
+
+    const senateBtn = L.DomUtil.create("button", "", div);
+    senateBtn.innerHTML = "Senate";
+
+    houseBtn.onclick = () => {
+      map.removeLayer(activeLayer);
+      activeLayer = houseLayer;
+      activeLayer.addTo(map);
+    };
+
+    senateBtn.onclick = () => {
+      map.removeLayer(activeLayer);
+      activeLayer = senateLayer;
+      activeLayer.addTo(map);
+    };
+
     return div;
   };
+  chamberControl.addTo(map);
 
-  toggleControl.addTo(map);
+  // Vote/Party Toggle
+  const colorControl = L.control({ position: "topright" });
+  colorControl.onAdd = function () {
+    const div = L.DomUtil.create("div");
+    div.style.background = "white";
+    div.style.padding = "8px";
+    div.style.marginTop = "8px";
+    div.style.boxShadow = "0 0 6px rgba(0,0,0,0.3)";
+    div.style.borderRadius = "6px";
 
-  window.switchLayer = function(type) {
-    map.removeLayer(activeLayer);
-    activeLayer = (type === "house") ? houseLayer : senateLayer;
-    activeLayer.addTo(map);
+    const voteBtn = L.DomUtil.create("button", "", div);
+    voteBtn.innerHTML = "Vote View";
+    voteBtn.style.marginRight = "4px";
+
+    const partyBtn = L.DomUtil.create("button", "", div);
+    partyBtn.innerHTML = "Party View";
+
+    voteBtn.onclick = () => {
+      colorMode = "vote";
+      activeLayer.setStyle(activeLayer._styleFunction);
+    };
+
+    partyBtn.onclick = () => {
+      colorMode = "party";
+      activeLayer.setStyle(activeLayer._styleFunction);
+    };
+
+    return div;
   };
+  colorControl.addTo(map);
 
+  // Address Search
   window.searchAddress = async function () {
     const address = document.getElementById("addressInput").value;
     if (!address) return;
 
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`
-      );
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`
+    );
 
-      const results = await response.json();
-      if (!results.length) {
-        alert("Address not found.");
-        return;
+    const results = await response.json();
+    if (!results.length) return alert("Address not found.");
+
+    const lat = parseFloat(results[0].lat);
+    const lon = parseFloat(results[0].lon);
+    const point = turf.point([lon, lat]);
+
+    let found = null;
+
+    activeLayer.eachLayer(layer => {
+      if (turf.booleanPointInPolygon(point, layer.toGeoJSON())) {
+        found = layer;
       }
+    });
 
-      const lat = parseFloat(results[0].lat);
-      const lon = parseFloat(results[0].lon);
-      const point = turf.point([lon, lat]);
-
-      let foundDistrict = null;
-
-      activeLayer.eachLayer(layer => {
-        const polygon = layer.toGeoJSON();
-        if (turf.booleanPointInPolygon(point, polygon)) {
-          foundDistrict = layer;
-        }
-      });
-
-      if (foundDistrict) {
-        map.setView([lat, lon], 10);
-        foundDistrict.openPopup();
-      } else {
-        alert("No district found for that address.");
-      }
-
-    } catch (error) {
-      console.error(error);
-      alert("Search error occurred.");
+    if (found) {
+      map.setView([lat, lon], 10);
+      found.openPopup();
+    } else {
+      alert("No district found for that address.");
     }
   };
 
-  const legend = L.control({ position: "bottomright" });
-
-  legend.onAdd = function () {
-    const div = L.DomUtil.create("div");
-    div.innerHTML = `
-      <div style="
-        background:white;
-        padding:10px;
-        font-size:13px;
-        line-height:1.4;
-        box-shadow:0 0 6px rgba(0,0,0,0.3);
-        border-radius:6px;
-        max-width:260px;
-      ">
-        <div style="display:flex;align-items:center;margin-bottom:6px;">
-          <span style="
-            width:18px;
-            height:18px;
-            background:#f1c40f;
-            opacity:0.5;
-            display:inline-block;
-            margin-right:8px;
-          "></span>
-          Voted YES
-        </div>
-        <div style="font-size:12px;">
-          This bill removed the 2030 carbon reduction target and changed regulatory rules on cost recovery (including construction and fuel costs), expanding Duke Energy’s ability to include certain costs in rates. Passed over the governor’s veto.
-        </div>
-      </div>
-    `;
-    return div;
-  };
-
-  legend.addTo(map);
-
-})
-.catch(error => {
-  console.error("Error loading data:", error);
 });
-
 </script>
 
 </body>
 </html>
+
 
 
 
