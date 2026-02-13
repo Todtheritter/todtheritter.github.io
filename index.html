@@ -123,11 +123,13 @@ Promise.all([
 
       if (colorMode === "party") {
         if (info.vote === "Yes" && info.party === "Republican")
-          fillColor = "#c0392b";
+          fillColor = "#81261d";
         else if (info.vote === "Yes" && info.party === "Democrat")
           fillColor = "#2980b9";
-        else if (info.vote === "No")
-          fillColor = "#8e44ad";
+        else if (info.vote === "No" && info.party === "Republican")
+          fillColor = "#c0392b";
+        else if (info.vote === "No" && info.party === "Democrat")
+          fillColor = "2980b9";
         else
           fillColor = "#999999";
       }
@@ -295,9 +297,10 @@ Promise.all([
     if (colorMode === "party") {
       this._div.innerHTML = `
         <div style="margin-bottom:6px;"><strong>Party View</strong></div>
-        <div><span style="background:#c0392b;width:16px;height:16px;display:inline-block;margin-right:6px;opacity:0.5;"></span>Yes – Republican</div>
-        <div><span style="background:#2980b9;width:16px;height:16px;display:inline-block;margin-right:6px;opacity:0.5;"></span>Yes – Democrat</div>
-        <div><span style="background:#8e44ad;width:16px;height:16px;display:inline-block;margin-right:6px;opacity:0.5;"></span>No</div>
+        <div><span style="background:#81261d;width:16px;height:16px;display:inline-block;margin-right:6px;opacity:0.5;"></span>Yes – Republican</div>
+        <div><span style="background:#2938b9;width:16px;height:16px;display:inline-block;margin-right:6px;opacity:0.5;"></span>Yes – Democrat</div>
+        <div><span style="background:#c0392b;width:16px;height:16px;display:inline-block;margin-right:6px;opacity:0.5;"></span>No - Republican</div>
+        <div><span style="background:#2980b9;width:16px;height:16px;display:inline-block;margin-right:6px;opacity:0.5;"></span>No - Democrat</div>
         <div><span style="background:#999999;width:16px;height:16px;display:inline-block;margin-right:6px;opacity:0.5;"></span>Absent</div>
       `;
     }
@@ -310,6 +313,7 @@ Promise.all([
 
 </body>
 </html>
+
 
 
 
