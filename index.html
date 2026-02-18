@@ -362,10 +362,25 @@ Promise.all([
   legend.addTo(map);
 
 });
+
+  const infoPanel = document.getElementById("infoPanel");
+const minimizeBtn = document.getElementById("minimizeBtn");
+
+minimizeBtn.addEventListener("click", () => {
+  infoPanel.classList.toggle("minimized");
+
+  if (infoPanel.classList.contains("minimized")) {
+    minimizeBtn.textContent = "+";
+  } else {
+    minimizeBtn.textContent = "−";
+  }
+});
+
 </script>
 
 </body>
 </html>
+
 
 
 
