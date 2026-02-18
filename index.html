@@ -113,14 +113,27 @@
     max-height: calc(50dvh - 50px);
   }
 
-  #searchBox {
-    width: 92%;
-    flex-direction: column;
-  }
+#searchBox {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  transform: none;
+  width: auto;
+  max-width: 70%;
+  padding: 6px 8px;
+  gap: 4px;
+  flex-direction: row;
+}
 
-  #searchBox input {
-    width: 100%;
-  }
+#searchBox input {
+  width: 120px;
+  padding: 4px;
+  font-size: 13px;
+}
+
+#searchBox button {
+  padding: 4px 6px;
+  font-size: 13px;
 }
 
 
@@ -416,6 +429,7 @@ minimizeBtn.addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
 
